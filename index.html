@@ -2,183 +2,1000 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <title>WSPlayer RTSP 流测试 Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WSS Video Tester</title>
   <style>
-    body { font-family: Arial, "Microsoft YaHei", sans-serif; padding: 20px; background: #f6f7f9; }
-    .box { background: #fff; padding: 18px; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-    input, textarea { width: 100%; box-sizing: border-box; padding: 8px; margin: 6px 0 12px; }
-    button { padding: 8px 16px; cursor: pointer; margin-right: 8px; }
-    #videoPlayer0 { width: 800px; height: 450px; background: #000; color: #fff; display:flex; align-items:center; justify-content:center; }
-    pre { background: #111; color: #0f0; padding: 12px; min-height: 120px; white-space: pre-wrap; }
+    :root {
+      --bg: #f4f6f8;
+      --panel: #fff;
+      --text: #17202a;
+      --muted: #667085;
+      --border: #d9dee7;
+      --primary: #1769e0;
+      --primary-hover: #0f58c7;
+      --success: #14804a;
+      --warning: #b76e00;
+      --danger: #c62828;
+      --info: #245bdb;
+      --code-bg: #101828;
+      --shadow: 0 1px 3px rgba(16, 24, 40, .1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+    }
+
+    .app {
+      width: min(1440px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 20px 0 28px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .title h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 380px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .panel-body {
+      padding: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--text);
+      background: #fff;
+      font: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+      word-break: break-all;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(23, 105, 224, .12);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .hint {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 8px 12px;
+      min-height: 36px;
+      cursor: pointer;
+      font: inherit;
+      font-size: 14px;
+      background: #fff;
+      color: #344054;
+      border-color: var(--border);
+    }
+
+    .btn:hover {
+      background: #f9fafb;
+    }
+
+    .btn.primary {
+      color: #fff;
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .btn.primary:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn.danger {
+      color: #fff;
+      background: var(--danger);
+      border-color: var(--danger);
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: .6;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .button-grid .wide {
+      grid-column: 1 / -1;
+    }
+
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .status-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    .status-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #344054;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #eef2f7;
+      color: #475467;
+    }
+
+    .badge.success {
+      color: var(--success);
+      background: #e9f7ef;
+    }
+
+    .badge.warning {
+      color: var(--warning);
+      background: #fff4df;
+    }
+
+    .badge.danger {
+      color: var(--danger);
+      background: #fdecec;
+    }
+
+    .badge.info {
+      color: var(--info);
+      background: #edf3ff;
+    }
+
+    .player-shell {
+      overflow: hidden;
+    }
+
+    .player-toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .player-meta {
+      color: var(--muted);
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #videoPlayer0 {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      min-height: 360px;
+      background: #000;
+      color: #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .diagnostics {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .kv {
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .kv div {
+      display: grid;
+      grid-template-columns: 110px minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .kv dt {
+      color: var(--muted);
+    }
+
+    .kv dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .log {
+      height: 260px;
+      margin: 0;
+      overflow: auto;
+      border-radius: 0 0 8px 8px;
+      background: var(--code-bg);
+      color: #d1fadf;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .log .info {
+      color: #bfdbfe;
+    }
+
+    .log .success {
+      color: #86efac;
+    }
+
+    .log .warning {
+      color: #fde68a;
+    }
+
+    .log .error {
+      color: #fecaca;
+    }
+
+    @media (max-width: 980px) {
+      .layout,
+      .diagnostics {
+        grid-template-columns: 1fr;
+      }
+
+      .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .header {
+        display: block;
+      }
+
+      .actions {
+        justify-content: flex-start;
+        margin-top: 12px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        width: calc(100vw - 20px);
+        padding-top: 10px;
+      }
+
+      .row,
+      .status-grid,
+      .button-grid {
+        grid-template-columns: 1fr;
+      }
+
+      #videoPlayer0 {
+        min-height: 220px;
+      }
+    }
   </style>
 </head>
 <body>
+<main class="app">
+  <header class="header">
+    <div class="title">
+      <h1>WSS Video Tester</h1>
+      <p>用于独立验证 WSPlayer 资源、WSS 服务连通性、RTSP 拉流和播放器回调。</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnCheckResources">检查资源</button>
+      <button class="btn primary" id="btnRunAll">完整测试</button>
+      <button class="btn danger" id="btnStop">停止播放</button>
+    </div>
+  </header>
 
-<div class="box">
-  <h2>WSPlayer RTSP 流测试 Demo</h2>
-  <p>用途：绕过业务页面，单独测试 <b>WebSocket 视频服务</b> 和 <b>RTSP 流播放</b>。</p>
-</div>
+  <section class="status-grid" aria-label="测试状态">
+    <div class="status-card">
+      <strong>资源</strong>
+      <span class="badge" id="statusResource">未检查</span>
+    </div>
+    <div class="status-card">
+      <strong>WSS</strong>
+      <span class="badge" id="statusWs">未测试</span>
+    </div>
+    <div class="status-card">
+      <strong>播放器</strong>
+      <span class="badge" id="statusPlayer">未初始化</span>
+    </div>
+    <div class="status-card">
+      <strong>拉流</strong>
+      <span class="badge" id="statusStream">未播放</span>
+    </div>
+  </section>
 
-<div class="box">
-  <h3>1. WebSocket 地址</h3>
-  <input id="wsUrl" value="wss://di.crcxy.com" />
-  <button onclick="testWs()">测试 WebSocket</button>
-</div>
+  <div class="layout">
+    <aside class="panel">
+      <div class="panel-header">
+        <h2>测试参数</h2>
+        <span class="badge info" id="componentVersion">WSPlayer</span>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div>
+            <label for="wsUrl">WSS 地址</label>
+            <input id="wsUrl" spellcheck="false" value="wss://di.crcxy.com/video" />
+            <div class="hint">必须是视频服务的 WebSocket 地址，通常以 <code>wss://</code> 开头。</div>
+          </div>
 
-<div class="box">
-  <h3>2. RTSP 地址</h3>
-  <textarea id="rtspUrl" rows="3" placeholder="填写 VLC 能播放的 rtsp://... 地址"></textarea>
-  <button onclick="startPlay()">开始播放</button>
-  <button onclick="stopPlay()">停止播放</button>
-</div>
+          <div>
+            <label for="rtspUrl">RTSP 地址</label>
+            <textarea id="rtspUrl" spellcheck="false" placeholder="rtsp://...?...token=..."></textarea>
+            <div class="hint">建议填 VLC 能直接播放的地址。当前版本要求 RTSP 地址包含 <code>token=</code>。</div>
+          </div>
 
-<div class="box">
-  <h3>播放器窗口</h3>
-  <div id="videoPlayer0">videoPlayer0</div>
-</div>
+          <div class="row">
+            <div>
+              <label for="streamType">码流</label>
+              <select id="streamType">
+                <option value="1">主码流</option>
+                <option value="2">辅码流</option>
+              </select>
+            </div>
+            <div>
+              <label for="channelId">通道标识</label>
+              <input id="channelId" value="demo" />
+            </div>
+          </div>
 
-<div class="box">
-  <h3>日志</h3>
-  <pre id="log"></pre>
-</div>
+          <div class="row">
+            <div>
+              <label for="wsTimeout">WSS 超时</label>
+              <select id="wsTimeout">
+                <option value="5000">5 秒</option>
+                <option value="10000" selected>10 秒</option>
+                <option value="15000">15 秒</option>
+              </select>
+            </div>
+            <div>
+              <label for="adapter">显示模式</label>
+              <select id="adapter">
+                <option value="selfAdaption">自适应</option>
+                <option value="stretching">拉伸</option>
+              </select>
+            </div>
+          </div>
 
-<!--
-  请把你项目里的 WSPlayer 目录复制到 demo/libs/ 目录：
-  libs/WSPlayer/WSPlayer.js
-  libs/WSPlayer/PlaySDKInterface.js
-  libs/WSPlayer/multiThread/libplay.js
-  libs/WSPlayer/multiThread/libplay.wasm
-  libs/WSPlayer/multiThread/libplay.data
+          <div class="button-grid">
+            <button class="btn" id="btnTestWs">测试 WSS</button>
+            <button class="btn" id="btnNormalize">清洗地址</button>
+            <button class="btn primary wide" id="btnStart">开始播放</button>
+            <button class="btn" id="btnCopyReport">复制诊断</button>
+            <button class="btn" id="btnClearLog">清空日志</button>
+          </div>
+        </div>
+      </div>
+    </aside>
 
-  如果路径不一致，改下面 script src。
--->
+    <section>
+      <div class="panel player-shell">
+        <div class="player-toolbar">
+          <strong>播放器窗口</strong>
+          <span class="player-meta" id="activeTarget">等待测试</span>
+        </div>
+        <div id="videoPlayer0">videoPlayer0</div>
+      </div>
+
+      <div class="diagnostics">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>运行诊断</h2>
+          </div>
+          <div class="panel-body">
+            <dl class="kv" id="diagList">
+              <div><dt>页面协议</dt><dd id="diagProtocol">-</dd></div>
+              <div><dt>资源目录</dt><dd id="diagPrefix">./libs</dd></div>
+              <div><dt>播放器版本</dt><dd id="diagVersion">-</dd></div>
+              <div><dt>最后错误</dt><dd id="diagLastError">-</dd></div>
+            </dl>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>判定规则</h2>
+          </div>
+          <div class="panel-body">
+            <div class="hint">
+              资源检查失败：本地 <code>libs/WSPlayer</code> 文件不完整。<br />
+              WSS 成功但播放超时：前端和网关基本正常，重点查视频服务到 RTSP 源的网络、权限和地址。<br />
+              407/408：通常是 RTSP 拉流失败、码流不支持或服务端未拿到有效码流。<br />
+              503：WSS 地址与 ICC/视频服务不匹配。
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel" style="margin-top: 16px;">
+        <div class="panel-header">
+          <h2>测试日志</h2>
+          <span class="badge" id="logCount">0 条</span>
+        </div>
+        <pre class="log" id="log"></pre>
+      </section>
+    </section>
+  </div>
+</main>
+
 <link rel="stylesheet" href="./libs/WSPlayer/player.css" />
 <script src="./libs/WSPlayer/PlaySDKInterface.js"></script>
 <script src="./libs/WSPlayer/WSPlayer.js"></script>
 
 <script>
-let player = null;
+(() => {
+  const PREFIX_URL = "./libs";
+  const RESOURCE_PATHS = [
+    "./libs/WSPlayer/player.css",
+    "./libs/WSPlayer/PlaySDKInterface.js",
+    "./libs/WSPlayer/WSPlayer.js",
+    "./libs/WSPlayer/commonThread/libRenderEngine.js",
+    "./libs/WSPlayer/commonThread/libRenderEngine.wasm",
+    "./libs/WSPlayer/commonThread/libIVSDrawer.js",
+    "./libs/WSPlayer/commonThread/libIVSDrawer.wasm",
+    "./libs/WSPlayer/commonThread/libmavasp_litepacket.js",
+    "./libs/WSPlayer/commonThread/libmavasp_litepacket.wasm",
+    "./libs/WSPlayer/commonThread/libmavasp_litepacket.data",
+    "./libs/WSPlayer/multiThread/libplay.js",
+    "./libs/WSPlayer/multiThread/libplay.wasm",
+    "./libs/WSPlayer/multiThread/libplay.data",
+    "./libs/WSPlayer/multiThread/libStreamClient.js",
+    "./libs/WSPlayer/multiThread/libStreamClient.wasm",
+    "./libs/WSPlayer/singleThread/libplay.js",
+    "./libs/WSPlayer/singleThread/libplay.wasm",
+    "./libs/WSPlayer/singleThread/libplay.data"
+  ];
 
-function log(msg) {
-  const el = document.getElementById("log");
-  const time = new Date().toLocaleTimeString();
-  el.textContent += "[" + time + "] " + msg + "\n";
-}
-
-function testWs() {
-  const wsUrl = document.getElementById("wsUrl").value.trim();
-  log("开始连接 WebSocket: " + wsUrl);
-
-  const ws = new WebSocket(wsUrl);
-
-  ws.onopen = function () {
-    log("✅ WebSocket 连接成功");
-    ws.close();
+  const ERROR_HINTS = {
+    101: "浏览器或解码能力不满足要求。",
+    202: "WebSocket 连接错误，先检查 WSS 地址和证书。",
+    401: "账号或通道没有播放权限。",
+    404: "请求超时或未找到，检查 RTSP 地址和服务端路由。",
+    405: "播放超时，视频服务可能未拿到码流。",
+    407: "请求超时，重点查视频服务到摄像头/平台的 RTSP 网络。",
+    408: "请求超时或码流不支持，检查编码格式、主辅码流和 RTSP 地址。",
+    409: "服务未推送码流，检查视频服务拉流状态。",
+    410: "视频流异常断开，检查源端稳定性和网络。",
+    503: "WSS 连接地址错误或与当前 ICC/视频服务不匹配。"
   };
 
-  ws.onerror = function (e) {
-    log("❌ WebSocket 连接失败，请看浏览器 Console / Network");
-    console.error(e);
+  const state = {
+    player: null,
+    logs: [],
+    lastError: null,
+    resourceChecked: false
   };
 
-  ws.onclose = function (e) {
-    log("WebSocket 已关闭 code=" + e.code);
+  const el = {
+    wsUrl: document.getElementById("wsUrl"),
+    rtspUrl: document.getElementById("rtspUrl"),
+    streamType: document.getElementById("streamType"),
+    channelId: document.getElementById("channelId"),
+    wsTimeout: document.getElementById("wsTimeout"),
+    adapter: document.getElementById("adapter"),
+    log: document.getElementById("log"),
+    logCount: document.getElementById("logCount"),
+    activeTarget: document.getElementById("activeTarget"),
+    componentVersion: document.getElementById("componentVersion"),
+    diagProtocol: document.getElementById("diagProtocol"),
+    diagVersion: document.getElementById("diagVersion"),
+    diagLastError: document.getElementById("diagLastError"),
+    statusResource: document.getElementById("statusResource"),
+    statusWs: document.getElementById("statusWs"),
+    statusPlayer: document.getElementById("statusPlayer"),
+    statusStream: document.getElementById("statusStream")
   };
 
-  ws.onmessage = function (e) {
-    log("收到消息: " + e.data);
-  };
-}
-
-function startPlay() {
-  const wsUrl = document.getElementById("wsUrl").value.trim();
-  const rtspUrl = document.getElementById("rtspUrl").value.trim();
-
-  if (!rtspUrl) {
-    alert("请先填写 RTSP 地址");
-    return;
+  function now() {
+    return new Date().toLocaleTimeString();
   }
 
-  log("准备播放");
-  log("wsUrl=" + wsUrl);
-  log("rtspUrl=" + rtspUrl);
+  function setStatus(target, label, type) {
+    target.textContent = label;
+    target.className = "badge" + (type ? " " + type : "");
+  }
 
-  try {
-    const WSPlayerCtor =
-      window.WSPlayer &&
+  function writeLog(level, message, data) {
+    const entry = {
+      time: now(),
+      level,
+      message,
+      data
+    };
+    state.logs.push(entry);
+
+    const detail = data === undefined ? "" : " " + safeJson(data);
+    const line = document.createElement("span");
+    line.className = level;
+    line.textContent = `[${entry.time}] [${level.toUpperCase()}] ${message}${detail}\n`;
+    el.log.appendChild(line);
+    el.log.scrollTop = el.log.scrollHeight;
+    el.logCount.textContent = `${state.logs.length} 条`;
+  }
+
+  function safeJson(value) {
+    try {
+      return JSON.stringify(value);
+    } catch (error) {
+      return String(value);
+    }
+  }
+
+  function normalizeText(value) {
+    return value
+      .trim()
+      .replace(/^["']+|["']+$/g, "")
+      .replace(/[\u201c\u201d]/g, "")
+      .replace(/\s+/g, "");
+  }
+
+  function normalizeInputs() {
+    el.wsUrl.value = normalizeText(el.wsUrl.value);
+    el.rtspUrl.value = normalizeText(el.rtspUrl.value);
+    el.channelId.value = el.channelId.value.trim() || "demo";
+    refreshTarget();
+    writeLog("info", "已清洗输入地址");
+  }
+
+  function validateInputs(requireRtsp) {
+    normalizeInputs();
+
+    const wsUrl = el.wsUrl.value;
+    const rtspUrl = el.rtspUrl.value;
+
+    if (!/^wss?:\/\//i.test(wsUrl)) {
+      throw new Error("WSS 地址必须以 ws:// 或 wss:// 开头");
+    }
+
+    if (requireRtsp) {
+      if (!/^rtsp:\/\//i.test(rtspUrl)) {
+        throw new Error("RTSP 地址必须以 rtsp:// 开头");
+      }
+      if (!rtspUrl.includes("token=")) {
+        writeLog("warning", "当前 WSPlayer 版本通常要求 RTSP 地址包含 token=");
+      }
+    }
+
+    return {
+      wsUrl,
+      rtspUrl,
+      streamType: el.streamType.value,
+      channelId: el.channelId.value.trim() || "demo",
+      timeout: Number(el.wsTimeout.value),
+      adapter: el.adapter.value
+    };
+  }
+
+  async function checkResources() {
+    setStatus(el.statusResource, "检查中", "info");
+    writeLog("info", "开始检查本地播放器资源");
+
+    const failed = [];
+    await Promise.all(RESOURCE_PATHS.map(async (path) => {
+      try {
+        const res = await fetch(path, { method: "HEAD", cache: "no-store" });
+        if (!res.ok) failed.push(`${path} -> HTTP ${res.status}`);
+      } catch (error) {
+        failed.push(`${path} -> ${error.message}`);
+      }
+    }));
+
+    if (failed.length) {
+      state.resourceChecked = false;
+      setStatus(el.statusResource, "缺失", "danger");
+      writeLog("error", "播放器资源检查失败", failed);
+      throw new Error("播放器资源缺失，请查看日志中的文件路径");
+    }
+
+    state.resourceChecked = true;
+    setStatus(el.statusResource, "正常", "success");
+    writeLog("success", "播放器资源检查通过", { count: RESOURCE_PATHS.length });
+  }
+
+  function testWsConnection() {
+    const config = validateInputs(false);
+    setStatus(el.statusWs, "连接中", "info");
+    writeLog("info", "开始测试 WSS 连接", { wsUrl: config.wsUrl, timeout: config.timeout });
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const ws = new WebSocket(config.wsUrl);
+      const timer = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        try {
+          ws.close();
+        } catch (error) {
+          console.warn(error);
+        }
+        setStatus(el.statusWs, "超时", "danger");
+        reject(new Error(`WSS 连接超时 ${config.timeout}ms`));
+      }, config.timeout);
+
+      ws.onopen = () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        setStatus(el.statusWs, "正常", "success");
+        writeLog("success", "WSS 连接成功");
+        ws.close(1000, "tester complete");
+        resolve();
+      };
+
+      ws.onerror = (event) => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        setStatus(el.statusWs, "失败", "danger");
+        writeLog("error", "WSS 连接失败，请查看浏览器 Network 面板", { type: event.type });
+        reject(new Error("WSS 连接失败"));
+      };
+
+      ws.onclose = (event) => {
+        if (!settled) {
+          window.clearTimeout(timer);
+          writeLog("warning", "WSS 在连接建立前关闭", { code: event.code, reason: event.reason });
+        } else {
+          writeLog("info", "WSS 已关闭", { code: event.code, reason: event.reason });
+        }
+      };
+
+      ws.onmessage = (event) => {
+        writeLog("info", "WSS 收到消息", String(event.data).slice(0, 300));
+      };
+    });
+  }
+
+  function getWSPlayerCtor() {
+    return window.WSPlayer &&
       (window.WSPlayer.WSPlayer ||
        window.WSPlayer.default ||
        (typeof window.WSPlayer === "function" ? window.WSPlayer : null));
+  }
 
+  function initPlayer(config) {
+    const WSPlayerCtor = getWSPlayerCtor();
     if (!WSPlayerCtor) {
-      log("❌ 未加载 WSPlayer，请确认 libs/WSPlayer/WSPlayer.js 是否存在");
-      return;
+      setStatus(el.statusPlayer, "未加载", "danger");
+      throw new Error("未加载 WSPlayer，请确认 libs/WSPlayer/WSPlayer.js 是否存在");
     }
 
-    if (player && typeof player.destroy === "function") {
-      player.destroy();
-      player = null;
-    }
+    destroyPlayer(false);
 
-    player = new WSPlayerCtor({
+    state.player = new WSPlayerCtor({
       el: "videoPlayer0",
       type: "real",
-      prefixUrl: "./libs",
+      prefixUrl: PREFIX_URL,
       importLoad: false,
       config: {
         num: 1,
         maxNum: 1,
         showControl: true,
-        isDynamicLoadLib: true
+        showTopOperate: true,
+        showRecordProgressBar: false,
+        isDynamicLoadLib: true,
+        onlyLoadSingleLib: location.protocol !== "https:"
       },
-      receiveMessageFromWSPlayer: function (type, data) {
-        if (type === "initializationCompleted") {
-          log("播放器解码库初始化完成");
-        } else if (type === "realSuccess") {
-          log("实时预览播放成功");
-        } else if (type === "realError" || type === "errorInfo") {
-          log("播放器错误: " + JSON.stringify(data || {}));
-          console.error("WSPlayer error", type, data);
-        } else {
-          console.log("WSPlayer message", type, data);
-        }
+      receiveMessageFromWSPlayer: onPlayerMessage
+    });
+
+    setStatus(el.statusPlayer, "已初始化", "success");
+    writeLog("success", "播放器实例初始化完成", { version: getPlayerVersion(), adapter: config.adapter });
+  }
+
+  function startPlay() {
+    try {
+      const config = validateInputs(true);
+      setStatus(el.statusStream, "启动中", "info");
+      refreshTarget();
+
+      if (!state.resourceChecked) {
+        writeLog("warning", "尚未执行资源检查，建议先点击完整测试或检查资源");
       }
-    });
 
-    player.realByUrl({
-      rtspURL: rtspUrl,
-      wsURL: wsUrl,
-      selectIndex: 0,
-      channelId: "demo",
-      streamType: "1",
-      playerAdapter: "selfAdaption"
-    });
+      initPlayer(config);
+      state.player.realByUrl({
+        rtspURL: config.rtspUrl,
+        wsURL: config.wsUrl,
+        selectIndex: 0,
+        channelId: config.channelId,
+        streamType: config.streamType,
+        playerAdapter: config.adapter,
+        channelData: {
+          id: config.channelId
+        }
+      });
 
-    log("已调用 WSPlayer.realByUrl");
-
-  } catch (e) {
-    console.error(e);
-    log("❌ 播放异常: " + e.message);
-  }
-}
-
-function stopPlay() {
-  try {
-    if (player) {
-      if (typeof player.destroy === "function") player.destroy();
-      else if (typeof player.stop === "function") player.stop();
-      else if (typeof player.close === "function") player.close();
-      log("已停止播放器");
-      player = null;
-    } else {
-      log("当前没有 player 实例");
+      writeLog("info", "已调用 WSPlayer.realByUrl", {
+        wsURL: config.wsUrl,
+        rtspURL: config.rtspUrl,
+        streamType: config.streamType,
+        channelId: config.channelId
+      });
+    } catch (error) {
+      handleFatal(error);
     }
-  } catch (e) {
-    console.error(e);
-    log("停止异常: " + e.message);
   }
-}
-</script>
 
+  async function runAll() {
+    try {
+      normalizeInputs();
+      clearLog();
+      writeLog("info", "开始完整测试");
+      await checkResources();
+      await testWsConnection();
+      startPlay();
+    } catch (error) {
+      handleFatal(error);
+    }
+  }
+
+  function onPlayerMessage(type, data) {
+    if (type === "initializationCompleted") {
+      setStatus(el.statusPlayer, "解码库就绪", "success");
+      writeLog("success", "播放器解码库初始化完成");
+      return;
+    }
+
+    if (type === "realSuccess") {
+      setStatus(el.statusStream, "播放中", "success");
+      writeLog("success", "实时预览播放成功", data);
+      return;
+    }
+
+    if (type === "realError" || type === "errorInfo") {
+      const normalized = normalizePlayerError(data);
+      state.lastError = normalized;
+      el.diagLastError.textContent = normalized.summary;
+      setStatus(el.statusStream, "失败", "danger");
+      writeLog("error", "播放器返回错误", normalized);
+      return;
+    }
+
+    if (type === "closeVideo") {
+      setStatus(el.statusStream, "已关闭", "warning");
+      writeLog("info", "播放器关闭视频", data);
+      return;
+    }
+
+    if (type === "statusChanged") {
+      writeLog("info", "播放器状态变化", data);
+      return;
+    }
+
+    console.log("WSPlayer message", type, data);
+  }
+
+  function normalizePlayerError(data) {
+    const code = data && (data.errorCode || data.code || data.error_code);
+    const info = data && (data.errorInfo || data.message || data.msg);
+    const hint = ERROR_HINTS[code] || "请结合 Network、Console 和视频服务日志继续定位。";
+
+    return {
+      code: code || "unknown",
+      info: info || "unknown",
+      hint,
+      raw: data || {},
+      summary: `${code || "unknown"} ${info || ""} ${hint}`.trim()
+    };
+  }
+
+  function destroyPlayer(withLog) {
+    if (!state.player) return;
+
+    try {
+      if (typeof state.player.destroy === "function") {
+        state.player.destroy();
+      } else if (typeof state.player.close === "function") {
+        state.player.close();
+      }
+    } catch (error) {
+      writeLog("warning", "停止播放器时发生异常", error.message);
+    } finally {
+      state.player = null;
+      setStatus(el.statusStream, "已停止", "warning");
+      setStatus(el.statusPlayer, "未初始化", "");
+      if (withLog) writeLog("info", "已停止播放器");
+    }
+  }
+
+  function refreshTarget() {
+    const ws = normalizeText(el.wsUrl.value);
+    const rtsp = normalizeText(el.rtspUrl.value);
+    el.activeTarget.textContent = rtsp ? `${ws} -> ${rtsp}` : ws || "等待测试";
+  }
+
+  function getPlayerVersion() {
+    const ctor = getWSPlayerCtor();
+    return (ctor && ctor.version) || "-";
+  }
+
+  function refreshDiagnostics() {
+    el.diagProtocol.textContent = location.protocol;
+    el.diagVersion.textContent = getPlayerVersion();
+    el.componentVersion.textContent = `WSPlayer ${getPlayerVersion()}`;
+  }
+
+  function clearLog() {
+    state.logs = [];
+    el.log.textContent = "";
+    el.logCount.textContent = "0 条";
+  }
+
+  async function copyReport() {
+    const report = {
+      time: new Date().toISOString(),
+      page: location.href,
+      protocol: location.protocol,
+      wsUrl: normalizeText(el.wsUrl.value),
+      rtspUrl: normalizeText(el.rtspUrl.value),
+      streamType: el.streamType.value,
+      channelId: el.channelId.value.trim(),
+      playerVersion: getPlayerVersion(),
+      statuses: {
+        resource: el.statusResource.textContent,
+        ws: el.statusWs.textContent,
+        player: el.statusPlayer.textContent,
+        stream: el.statusStream.textContent
+      },
+      lastError: state.lastError,
+      logs: state.logs
+    };
+
+    const text = JSON.stringify(report, null, 2);
+    try {
+      await navigator.clipboard.writeText(text);
+      writeLog("success", "诊断报告已复制到剪贴板");
+    } catch (error) {
+      writeLog("warning", "复制失败，已在控制台输出诊断报告", error.message);
+      console.log(text);
+    }
+  }
+
+  function handleFatal(error) {
+    state.lastError = {
+      summary: error.message
+    };
+    el.diagLastError.textContent = error.message;
+    writeLog("error", error.message);
+  }
+
+  document.getElementById("btnCheckResources").addEventListener("click", () => {
+    checkResources().catch(handleFatal);
+  });
+  document.getElementById("btnRunAll").addEventListener("click", runAll);
+  document.getElementById("btnTestWs").addEventListener("click", () => {
+    testWsConnection().catch(handleFatal);
+  });
+  document.getElementById("btnNormalize").addEventListener("click", normalizeInputs);
+  document.getElementById("btnStart").addEventListener("click", startPlay);
+  document.getElementById("btnStop").addEventListener("click", () => destroyPlayer(true));
+  document.getElementById("btnClearLog").addEventListener("click", clearLog);
+  document.getElementById("btnCopyReport").addEventListener("click", copyReport);
+
+  ["input", "change"].forEach((eventName) => {
+    el.wsUrl.addEventListener(eventName, refreshTarget);
+    el.rtspUrl.addEventListener(eventName, refreshTarget);
+  });
+
+  refreshDiagnostics();
+  refreshTarget();
+  writeLog("info", "测试组件已就绪", {
+    playerVersion: getPlayerVersion(),
+    prefixUrl: PREFIX_URL
+  });
+})();
+</script>
 </body>
 </html>
