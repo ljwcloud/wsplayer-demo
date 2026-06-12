@@ -1,9 +1,13 @@
-# WSS Video Tester
+# Universal Video Tester
 
-用于独立测试 WSPlayer、WSS 视频服务和 RTSP 拉流链路。
-也支持直接测试完整 WSS 取流地址，例如：
+这是一个通用视频测试平台，不再把大华 `WSPlayer` 当成通用播放器。
+
+平台按模块拆分：
 
 ```text
+通用播放器       标准 URL、原生 video、HLS/FLV/MPEGTS 开源库适配
+直连 WSS 诊断   只测试完整 WSS 地址能否连接、是否返回数据
+大华 WSPlayer   大华 / ICC 私有 SDK，使用 wsURL + rtspURL 播放
 ```
 
 ## 目录结构
@@ -11,23 +15,24 @@
 ```text
 wsplayer-demo/
 ├── index.html
+├── css/
+│   └── app.css
+├── js/
+│   ├── app.js
+│   └── modules/
+│       ├── generic-player.js
+│       ├── direct-wss.js
+│       └── dahua-wsplayer.js
 ├── libs/
 │   └── WSPlayer/
-│       ├── WSPlayer.js
-│       ├── PlaySDKInterface.js
-│       ├── player.css
-│       ├── commonThread/
-│       ├── multiThread/
-│       ├── singleThread/
-│       └── icon/
 └── README.md
 ```
 
 ## 启动
 
 ```bash
-cd /wsplayer-demo
-npx serve .
+cd /Users/lvjianwei/Downloads/wsplayer-demo
+python3 -m http.server 8090
 ```
 
 访问：
@@ -36,30 +41,79 @@ npx serve .
 http://127.0.0.1:8090
 ```
 
-## RTSP 播放测试
+## 通用播放器
 
-页面左侧的 `RTSP 播放测试` 是真正调用 WSPlayer 播放画面的区域。
-
-1. 填写 `RTSP 播放使用的 WSS 地址`，例如：
+用于测试标准媒体地址：
 
 ```text
-wss://xx.xx.com/video
+https://example.com/video.mp4
+https://example.com/live.m3u8
+https://example.com/live.flv
 ```
 
-2. 填写 VLC 可播放的 `RTSP 地址`，通常需要包含 `token=`。
-3. 页面会在 `当前播放链路` 中展示：
+支持方式：
 
 ```text
-WSS 地址 -> RTSP 地址
+原生 video
+HLS 原生，主要是 Safari
+HLS.js，需要额外引入 hls.js
+MPEGTS.js，需要额外引入 mpegts.js
+FLV.js，需要额外引入 flv.js
+iframe 预览
 ```
 
-4. 点击：
+通用播放器不直接播放：
 
 ```text
-开始播放 RTSP
+rtsp://...
+wss://...
 ```
 
-RTSP 播放实际调用：
+这类地址需要网关转封装或厂商 SDK。
+
+## 直连 WSS 诊断
+
+用于测试完整 WSS 地址，例如：
+
+```text
+wss://example.com/video/dss/monitor/param/cameraid=CHANNEL_ID%26substream=1?token=YOUR_TOKEN
+```
+
+它只做 WebSocket 诊断：
+
+```text
+是否连接成功
+是否收到文本帧
+是否收到二进制帧
+累计收到字节数
+关闭 code / reason
+```
+
+它不是播放器。能收到二进制数据，不代表浏览器知道如何解码成画面。
+
+## 大华 WSPlayer 模块
+
+这是厂商私有模块，依赖：
+
+```text
+libs/WSPlayer/WSPlayer.js
+libs/WSPlayer/PlaySDKInterface.js
+libs/WSPlayer/commonThread/
+libs/WSPlayer/singleThread/
+libs/WSPlayer/multiThread/
+```
+
+播放时需要两段参数：
+
+```text
+大华 / ICC WSS 服务地址：
+wss://example.com/video
+
+RTSP 地址：
+rtsp://...?...token=...
+```
+
+实际调用：
 
 ```js
 player.realByUrl({
@@ -68,96 +122,23 @@ player.realByUrl({
 })
 ```
 
-## 直连 WSS 地址测试
+## 后续扩展
 
-页面左侧的 `直连 WSS 数据测试` 是独立区域，不使用 RTSP 地址。
-
-如果拿到的是完整 WSS 取流地址，填到 `完整直连 WSS 地址`：
+新增厂商或协议时，不要改大华模块，新增一个独立文件即可：
 
 ```text
+js/modules/hikvision-player.js
+js/modules/webrtc-player.js
+js/modules/flv-live-player.js
 ```
 
-点击：
+然后在 `index.html` 中引入该模块脚本，并调用：
 
-```text
-测试直连 WSS
+```js
+VideoTester.register({
+  id: "your-module",
+  title: "Your Module",
+  render(container) {},
+  stop() {}
+})
 ```
-
-页面会直接创建 WebSocket 连接，并统计：
-
-```text
-是否连接成功
-是否收到文本消息
-是否收到二进制数据
-累计收到字节数
-关闭 code 和 reason
-```
-
-说明：
-
-```text
-直连 WSS 测试用于判断这个完整地址本身是否通、是否返回数据。
-它不等同于 WSPlayer 播放测试；如果协议不是 WSPlayer realByUrl 使用的 rtsp-over-websocket 格式，直连能收到数据也不代表当前播放器一定能解码播放。
-```
-
-如果要从直连 WSS 地址中提取 RTSP 播放使用的服务地址，点击：
-
-```text
-提取为 RTSP 播放 WSS
-```
-
-例如会从：
-
-```text
-wss://xxx/video/dss/monitor/param/...
-```
-
-提取为：
-
-```text
-wss://xxx/video
-```
-
-## 结果判断
-
-资源失败：
-
-```text
-libs/WSPlayer 目录不完整，先补齐 WSPlayer 整套文件。
-```
-
-WSS 失败：
-
-```text
-检查 WSS 地址、证书、Nginx WebSocket 转发、服务是否在线。
-```
-
-WSS 成功但播放失败：
-
-```text
-前端资源和 WSS 基本正常，重点查视频服务到 RTSP 源的链路。
-```
-
-常见播放器错误：
-
-```text
-407 请求超时：视频服务拉 RTSP 源失败。
-408 请求超时或码流不支持：检查编码、主辅码流、RTSP 地址。
-409 服务未推送码流：视频服务没有拿到有效码流。
-503 WSS 地址错误：WSS 地址与当前 ICC/视频服务不匹配。
-```
-
-## 诊断输出
-
-页面提供：
-
-```text
-资源状态
-WSS 状态
-播放器状态
-拉流状态
-结构化测试日志
-复制诊断报告
-```
-
-定位问题时，优先把页面日志和浏览器 Console / Network 中的错误一起保存。
