@@ -1,6 +1,11 @@
 # WSS Video Tester
 
 用于独立测试 WSPlayer、WSS 视频服务和 RTSP 拉流链路。
+也支持直接测试完整 WSS 取流地址，例如：
+
+```text
+wss://di.crcxy.com/video/dss/monitor/param/cameraid=1000036%40477%240%26substream=1?token=2253
+```
 
 ## 目录结构
 
@@ -32,21 +37,87 @@ python3 -m http.server 8090
 http://127.0.0.1:8090
 ```
 
-## 标准测试流程
+## RTSP 播放测试
 
-1. 填写 `WSS 地址`，例如：
+页面左侧的 `RTSP 播放测试` 是真正调用 WSPlayer 播放画面的区域。
+
+1. 填写 `RTSP 播放使用的 WSS 地址`，例如：
 
 ```text
-wss://di.crcxy.com/video/rtspoverwebsocket
+wss://di.crcxy.com/video
 ```
 
 2. 填写 VLC 可播放的 `RTSP 地址`，通常需要包含 `token=`。
-3. 点击 `完整测试`。
-
-完整测试会依次执行：
+3. 页面会在 `当前播放链路` 中展示：
 
 ```text
-资源检查 -> WSS 连接测试 -> 初始化播放器 -> 调用 realByUrl 拉流
+WSS 地址 -> RTSP 地址
+```
+
+4. 点击：
+
+```text
+开始播放 RTSP
+```
+
+RTSP 播放实际调用：
+
+```js
+player.realByUrl({
+  wsURL: "wss://...",
+  rtspURL: "rtsp://..."
+})
+```
+
+## 直连 WSS 地址测试
+
+页面左侧的 `直连 WSS 数据测试` 是独立区域，不使用 RTSP 地址。
+
+如果拿到的是完整 WSS 取流地址，填到 `完整直连 WSS 地址`：
+
+```text
+wss://di.crcxy.com/video/dss/monitor/param/cameraid=1000036%40477%240%26substream=1?token=2253
+```
+
+点击：
+
+```text
+测试直连 WSS
+```
+
+页面会直接创建 WebSocket 连接，并统计：
+
+```text
+是否连接成功
+是否收到文本消息
+是否收到二进制数据
+累计收到字节数
+关闭 code 和 reason
+```
+
+说明：
+
+```text
+直连 WSS 测试用于判断这个完整地址本身是否通、是否返回数据。
+它不等同于 WSPlayer 播放测试；如果协议不是 WSPlayer realByUrl 使用的 rtsp-over-websocket 格式，直连能收到数据也不代表当前播放器一定能解码播放。
+```
+
+如果要从直连 WSS 地址中提取 RTSP 播放使用的服务地址，点击：
+
+```text
+提取为 RTSP 播放 WSS
+```
+
+例如会从：
+
+```text
+wss://di.crcxy.com/video/dss/monitor/param/...
+```
+
+提取为：
+
+```text
+wss://di.crcxy.com/video
 ```
 
 ## 结果判断

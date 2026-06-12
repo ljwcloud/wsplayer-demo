@@ -72,6 +72,11 @@
       align-items: start;
     }
 
+    .side-stack {
+      display: grid;
+      gap: 16px;
+    }
+
     .panel {
       background: var(--panel);
       border: 1px solid var(--border);
@@ -150,6 +155,18 @@
       line-height: 1.45;
     }
 
+    .readonly-value {
+      min-height: 36px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: #344054;
+      background: #f8fafc;
+      font-size: 13px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+
     .btn {
       border: 1px solid transparent;
       border-radius: 6px;
@@ -194,13 +211,17 @@
       gap: 8px;
     }
 
+    .button-grid.three {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
     .button-grid .wide {
       grid-column: 1 / -1;
     }
 
     .status-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 10px;
       margin-bottom: 16px;
     }
@@ -345,6 +366,12 @@
       color: #fecaca;
     }
 
+    .divider {
+      height: 1px;
+      margin: 2px 0;
+      background: var(--border);
+    }
+
     @media (max-width: 980px) {
       .layout,
       .diagnostics {
@@ -373,7 +400,8 @@
 
       .row,
       .status-grid,
-      .button-grid {
+      .button-grid,
+      .button-grid.three {
         grid-template-columns: 1fr;
       }
 
@@ -392,8 +420,7 @@
     </div>
     <div class="actions">
       <button class="btn" id="btnCheckResources">检查资源</button>
-      <button class="btn primary" id="btnRunAll">完整测试</button>
-      <button class="btn danger" id="btnStop">停止播放</button>
+      <button class="btn danger" id="btnStop">停止 RTSP 播放</button>
     </div>
   </header>
 
@@ -414,69 +441,112 @@
       <strong>拉流</strong>
       <span class="badge" id="statusStream">未播放</span>
     </div>
+    <div class="status-card">
+      <strong>直连 WSS</strong>
+      <span class="badge" id="statusDirect">未测试</span>
+    </div>
   </section>
 
   <div class="layout">
-    <aside class="panel">
-      <div class="panel-header">
-        <h2>测试参数</h2>
-        <span class="badge info" id="componentVersion">WSPlayer</span>
-      </div>
-      <div class="panel-body">
-        <div class="form-grid">
-          <div>
-            <label for="wsUrl">WSS 地址</label>
-            <input id="wsUrl" spellcheck="false" value="wss://di.crcxy.com/video" />
-            <div class="hint">必须是视频服务的 WebSocket 地址，通常以 <code>wss://</code> 开头。</div>
-          </div>
-
-          <div>
-            <label for="rtspUrl">RTSP 地址</label>
-            <textarea id="rtspUrl" spellcheck="false" placeholder="rtsp://...?...token=..."></textarea>
-            <div class="hint">建议填 VLC 能直接播放的地址。当前版本要求 RTSP 地址包含 <code>token=</code>。</div>
-          </div>
-
-          <div class="row">
+    <aside class="side-stack">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>RTSP 播放测试</h2>
+          <span class="badge info" id="componentVersion">WSPlayer</span>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
             <div>
-              <label for="streamType">码流</label>
-              <select id="streamType">
-                <option value="1">主码流</option>
-                <option value="2">辅码流</option>
-              </select>
+              <label for="wsUrl">RTSP 播放使用的 WSS 地址</label>
+              <input id="wsUrl" spellcheck="false" value="wss://di.crcxy.com/video" />
+              <div class="hint">这是 RTSP 播放时传给 <code>realByUrl</code> 的 <code>wsURL</code>。</div>
             </div>
+
             <div>
-              <label for="channelId">通道标识</label>
-              <input id="channelId" value="demo" />
+              <label>当前播放链路</label>
+              <div class="readonly-value" id="rtspRoute">等待填写 RTSP 地址</div>
+            </div>
+
+            <div>
+              <label for="rtspUrl">RTSP 地址</label>
+              <textarea id="rtspUrl" spellcheck="false" placeholder="rtsp://...?...token=..."></textarea>
+              <div class="hint">填 VLC 能播放的 <code>rtsp://</code> 地址。当前 WSPlayer 版本通常要求包含 <code>token=</code>。</div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="streamType">码流</label>
+                <select id="streamType">
+                  <option value="1">主码流</option>
+                  <option value="2">辅码流</option>
+                </select>
+              </div>
+              <div>
+                <label for="channelId">通道标识</label>
+                <input id="channelId" value="demo" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="wsTimeout">WSS 超时</label>
+                <select id="wsTimeout">
+                  <option value="5000">5 秒</option>
+                  <option value="10000" selected>10 秒</option>
+                  <option value="15000">15 秒</option>
+                </select>
+              </div>
+              <div>
+                <label for="adapter">显示模式</label>
+                <select id="adapter">
+                  <option value="selfAdaption">自适应</option>
+                  <option value="stretching">拉伸</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="button-grid">
+              <button class="btn" id="btnTestWs">测试播放 WSS</button>
+              <button class="btn" id="btnNormalize">清洗 RTSP 参数</button>
+              <button class="btn primary wide" id="btnStart">开始播放 RTSP</button>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div class="row">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>直连 WSS 数据测试</h2>
+          <span class="badge" id="directModeLabel">WebSocket</span>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
             <div>
-              <label for="wsTimeout">WSS 超时</label>
-              <select id="wsTimeout">
-                <option value="5000">5 秒</option>
-                <option value="10000" selected>10 秒</option>
-                <option value="15000">15 秒</option>
-              </select>
+              <label for="directWssUrl">完整直连 WSS 地址</label>
+              <textarea id="directWssUrl" spellcheck="false">wss://di.crcxy.com/video/dss/monitor/param/cameraid=1000036%40477%240%26substream=1?token=2253</textarea>
+              <div class="hint">只测试这个完整 WSS 地址是否能连接、是否返回文本或二进制数据；它不使用 RTSP 地址。</div>
             </div>
-            <div>
-              <label for="adapter">显示模式</label>
-              <select id="adapter">
-                <option value="selfAdaption">自适应</option>
-                <option value="stretching">拉伸</option>
-              </select>
+
+            <div class="button-grid">
+              <button class="btn primary" id="btnDirectWs">测试直连 WSS</button>
+              <button class="btn" id="btnStopDirect">关闭直连</button>
+              <button class="btn wide" id="btnUseDirectBase">提取为 RTSP 播放 WSS</button>
             </div>
           </div>
+        </div>
+      </section>
 
+      <section class="panel">
+        <div class="panel-header">
+          <h2>通用操作</h2>
+        </div>
+        <div class="panel-body">
           <div class="button-grid">
-            <button class="btn" id="btnTestWs">测试 WSS</button>
-            <button class="btn" id="btnNormalize">清洗地址</button>
-            <button class="btn primary wide" id="btnStart">开始播放</button>
             <button class="btn" id="btnCopyReport">复制诊断</button>
             <button class="btn" id="btnClearLog">清空日志</button>
           </div>
         </div>
-      </div>
+      </section>
     </aside>
 
     <section>
@@ -572,6 +642,9 @@
 
   const state = {
     player: null,
+    directWs: null,
+    directTimer: null,
+    directStats: null,
     logs: [],
     lastError: null,
     resourceChecked: false
@@ -580,6 +653,7 @@
   const el = {
     wsUrl: document.getElementById("wsUrl"),
     rtspUrl: document.getElementById("rtspUrl"),
+    directWssUrl: document.getElementById("directWssUrl"),
     streamType: document.getElementById("streamType"),
     channelId: document.getElementById("channelId"),
     wsTimeout: document.getElementById("wsTimeout"),
@@ -587,6 +661,7 @@
     log: document.getElementById("log"),
     logCount: document.getElementById("logCount"),
     activeTarget: document.getElementById("activeTarget"),
+    rtspRoute: document.getElementById("rtspRoute"),
     componentVersion: document.getElementById("componentVersion"),
     diagProtocol: document.getElementById("diagProtocol"),
     diagVersion: document.getElementById("diagVersion"),
@@ -594,7 +669,8 @@
     statusResource: document.getElementById("statusResource"),
     statusWs: document.getElementById("statusWs"),
     statusPlayer: document.getElementById("statusPlayer"),
-    statusStream: document.getElementById("statusStream")
+    statusStream: document.getElementById("statusStream"),
+    statusDirect: document.getElementById("statusDirect")
   };
 
   function now() {
@@ -643,6 +719,7 @@
   function normalizeInputs() {
     el.wsUrl.value = normalizeText(el.wsUrl.value);
     el.rtspUrl.value = normalizeText(el.rtspUrl.value);
+    el.directWssUrl.value = normalizeText(el.directWssUrl.value);
     el.channelId.value = el.channelId.value.trim() || "demo";
     refreshTarget();
     writeLog("info", "已清洗输入地址");
@@ -674,6 +751,20 @@
       channelId: el.channelId.value.trim() || "demo",
       timeout: Number(el.wsTimeout.value),
       adapter: el.adapter.value
+    };
+  }
+
+  function validateDirectWssUrl() {
+    el.directWssUrl.value = normalizeText(el.directWssUrl.value);
+
+    const directWssUrl = el.directWssUrl.value;
+    if (!/^wss?:\/\//i.test(directWssUrl)) {
+      throw new Error("直连 WSS 地址必须以 ws:// 或 wss:// 开头");
+    }
+
+    return {
+      directWssUrl,
+      timeout: Number(el.wsTimeout.value)
     };
   }
 
@@ -757,6 +848,153 @@
     });
   }
 
+  function testDirectWssConnection() {
+    let config;
+    try {
+      config = validateDirectWssUrl();
+    } catch (error) {
+      handleFatal(error);
+      return;
+    }
+
+    closeDirectWss(false);
+    setStatus(el.statusDirect, "连接中", "info");
+    writeLog("info", "开始测试直连 WSS 地址", {
+      directWssUrl: config.directWssUrl,
+      duration: config.timeout
+    });
+
+    const stats = {
+      url: config.directWssUrl,
+      opened: false,
+      textMessages: 0,
+      binaryMessages: 0,
+      bytes: 0,
+      firstMessageAt: null,
+      closeCode: null,
+      closeReason: ""
+    };
+    state.directStats = stats;
+
+    try {
+      const ws = new WebSocket(config.directWssUrl);
+      state.directWs = ws;
+      ws.binaryType = "arraybuffer";
+
+      state.directTimer = window.setTimeout(() => {
+        if (!state.directWs) return;
+
+        if (stats.bytes > 0 || stats.textMessages > 0 || stats.binaryMessages > 0) {
+          setStatus(el.statusDirect, "收到数据", "success");
+          writeLog("success", "直连 WSS 测试完成，已收到数据", stats);
+        } else if (stats.opened) {
+          setStatus(el.statusDirect, "无数据", "warning");
+          writeLog("warning", "直连 WSS 已连接但在测试窗口内没有收到数据", stats);
+        } else {
+          setStatus(el.statusDirect, "超时", "danger");
+          writeLog("error", "直连 WSS 连接超时", stats);
+        }
+
+        closeDirectWss(false);
+      }, config.timeout);
+
+      ws.onopen = () => {
+        stats.opened = true;
+        setStatus(el.statusDirect, "已连接", "info");
+        writeLog("success", "直连 WSS 连接成功，等待数据");
+      };
+
+      ws.onmessage = (event) => {
+        if (!stats.firstMessageAt) stats.firstMessageAt = now();
+
+        if (typeof event.data === "string") {
+          stats.textMessages += 1;
+          stats.bytes += event.data.length;
+          writeLog("info", "直连 WSS 收到文本消息", event.data.slice(0, 500));
+        } else {
+          const size = event.data && event.data.byteLength ? event.data.byteLength : 0;
+          stats.binaryMessages += 1;
+          stats.bytes += size;
+          writeLog("success", "直连 WSS 收到二进制数据", {
+            bytes: size,
+            totalBytes: stats.bytes,
+            binaryMessages: stats.binaryMessages
+          });
+        }
+
+        setStatus(el.statusDirect, "收到数据", "success");
+      };
+
+      ws.onerror = (event) => {
+        setStatus(el.statusDirect, "失败", "danger");
+        writeLog("error", "直连 WSS 连接错误，请查看浏览器 Network 面板", { type: event.type });
+      };
+
+      ws.onclose = (event) => {
+        stats.closeCode = event.code;
+        stats.closeReason = event.reason || "";
+        if (state.directTimer) {
+          window.clearTimeout(state.directTimer);
+          state.directTimer = null;
+        }
+        if (stats.bytes > 0 || stats.textMessages > 0 || stats.binaryMessages > 0) {
+          setStatus(el.statusDirect, "收到数据", "success");
+        } else if (stats.opened) {
+          setStatus(el.statusDirect, "已关闭", "warning");
+        }
+        writeLog("info", "直连 WSS 已关闭", stats);
+        if (state.directWs === ws) {
+          state.directWs = null;
+        }
+      };
+    } catch (error) {
+      setStatus(el.statusDirect, "失败", "danger");
+      handleFatal(error);
+    }
+  }
+
+  function closeDirectWss(withLog) {
+    if (state.directTimer) {
+      window.clearTimeout(state.directTimer);
+      state.directTimer = null;
+    }
+
+    if (!state.directWs) {
+      if (withLog) writeLog("info", "当前没有直连 WSS 连接");
+      return;
+    }
+
+    try {
+      state.directWs.close(1000, "tester close");
+    } catch (error) {
+      writeLog("warning", "关闭直连 WSS 时发生异常", error.message);
+    } finally {
+      state.directWs = null;
+      if (withLog) {
+        setStatus(el.statusDirect, "已关闭", "warning");
+        writeLog("info", "已关闭直连 WSS");
+      }
+    }
+  }
+
+  function useDirectBaseAsWsUrl() {
+    try {
+      const config = validateDirectWssUrl();
+      const parsed = new URL(config.directWssUrl);
+      const marker = "/dss/";
+      const markerIndex = parsed.pathname.indexOf(marker);
+      const basePath = markerIndex >= 0 ? parsed.pathname.slice(0, markerIndex) : parsed.pathname;
+      el.wsUrl.value = `${parsed.protocol}//${parsed.host}${basePath}`.replace(/\/$/, "");
+      refreshTarget();
+      writeLog("success", "已从直连地址提取 WSS 服务地址", {
+        wsUrl: el.wsUrl.value,
+        directWssUrl: config.directWssUrl
+      });
+    } catch (error) {
+      handleFatal(error);
+    }
+  }
+
   function getWSPlayerCtor() {
     return window.WSPlayer &&
       (window.WSPlayer.WSPlayer ||
@@ -801,7 +1039,7 @@
       refreshTarget();
 
       if (!state.resourceChecked) {
-        writeLog("warning", "尚未执行资源检查，建议先点击完整测试或检查资源");
+        writeLog("warning", "尚未执行资源检查，建议先点击顶部的检查资源");
       }
 
       initPlayer(config);
@@ -823,19 +1061,6 @@
         streamType: config.streamType,
         channelId: config.channelId
       });
-    } catch (error) {
-      handleFatal(error);
-    }
-  }
-
-  async function runAll() {
-    try {
-      normalizeInputs();
-      clearLog();
-      writeLog("info", "开始完整测试");
-      await checkResources();
-      await testWsConnection();
-      startPlay();
     } catch (error) {
       handleFatal(error);
     }
@@ -914,6 +1139,7 @@
     const ws = normalizeText(el.wsUrl.value);
     const rtsp = normalizeText(el.rtspUrl.value);
     el.activeTarget.textContent = rtsp ? `${ws} -> ${rtsp}` : ws || "等待测试";
+    el.rtspRoute.textContent = rtsp ? `${ws} -> ${rtsp}` : `${ws} -> 等待 RTSP 地址`;
   }
 
   function getPlayerVersion() {
@@ -940,14 +1166,17 @@
       protocol: location.protocol,
       wsUrl: normalizeText(el.wsUrl.value),
       rtspUrl: normalizeText(el.rtspUrl.value),
+      directWssUrl: normalizeText(el.directWssUrl.value),
       streamType: el.streamType.value,
       channelId: el.channelId.value.trim(),
       playerVersion: getPlayerVersion(),
+      directStats: state.directStats,
       statuses: {
         resource: el.statusResource.textContent,
         ws: el.statusWs.textContent,
         player: el.statusPlayer.textContent,
-        stream: el.statusStream.textContent
+        stream: el.statusStream.textContent,
+        direct: el.statusDirect.textContent
       },
       lastError: state.lastError,
       logs: state.logs
@@ -974,10 +1203,12 @@
   document.getElementById("btnCheckResources").addEventListener("click", () => {
     checkResources().catch(handleFatal);
   });
-  document.getElementById("btnRunAll").addEventListener("click", runAll);
   document.getElementById("btnTestWs").addEventListener("click", () => {
     testWsConnection().catch(handleFatal);
   });
+  document.getElementById("btnDirectWs").addEventListener("click", testDirectWssConnection);
+  document.getElementById("btnUseDirectBase").addEventListener("click", useDirectBaseAsWsUrl);
+  document.getElementById("btnStopDirect").addEventListener("click", () => closeDirectWss(true));
   document.getElementById("btnNormalize").addEventListener("click", normalizeInputs);
   document.getElementById("btnStart").addEventListener("click", startPlay);
   document.getElementById("btnStop").addEventListener("click", () => destroyPlayer(true));
@@ -987,6 +1218,7 @@
   ["input", "change"].forEach((eventName) => {
     el.wsUrl.addEventListener(eventName, refreshTarget);
     el.rtspUrl.addEventListener(eventName, refreshTarget);
+    el.directWssUrl.addEventListener(eventName, refreshTarget);
   });
 
   refreshDiagnostics();
