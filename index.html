@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>WSPlayer RTSP 流测试 Demo</title>
+  <style>
+    body { font-family: Arial, "Microsoft YaHei", sans-serif; padding: 20px; background: #f6f7f9; }
+    .box { background: #fff; padding: 18px; border-radius: 8px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    input, textarea { width: 100%; box-sizing: border-box; padding: 8px; margin: 6px 0 12px; }
+    button { padding: 8px 16px; cursor: pointer; margin-right: 8px; }
+    #videoPlayer0 { width: 800px; height: 450px; background: #000; color: #fff; display:flex; align-items:center; justify-content:center; }
+    pre { background: #111; color: #0f0; padding: 12px; min-height: 120px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+
+<div class="box">
+  <h2>WSPlayer RTSP 流测试 Demo</h2>
+  <p>用途：绕过业务页面，单独测试 <b>WebSocket 视频服务</b> 和 <b>RTSP 流播放</b>。</p>
+</div>
+
+<div class="box">
+  <h3>1. WebSocket 地址</h3>
+  <input id="wsUrl" value="wss://di.crcxy.com" />
+  <button onclick="testWs()">测试 WebSocket</button>
+</div>
+
+<div class="box">
+  <h3>2. RTSP 地址</h3>
+  <textarea id="rtspUrl" rows="3" placeholder="填写 VLC 能播放的 rtsp://... 地址"></textarea>
+  <button onclick="startPlay()">开始播放</button>
+  <button onclick="stopPlay()">停止播放</button>
+</div>
+
+<div class="box">
+  <h3>播放器窗口</h3>
+  <div id="videoPlayer0">videoPlayer0</div>
+</div>
+
+<div class="box">
+  <h3>日志</h3>
+  <pre id="log"></pre>
+</div>
+
+<!--
+  请把你项目里的 WSPlayer 目录复制到 demo/libs/ 目录：
+  libs/WSPlayer/WSPlayer.js
+  libs/WSPlayer/PlaySDKInterface.js
+  libs/WSPlayer/multiThread/libplay.js
+  libs/WSPlayer/multiThread/libplay.wasm
+  libs/WSPlayer/multiThread/libplay.data
+
+  如果路径不一致，改下面 script src。
+-->
+<link rel="stylesheet" href="./libs/WSPlayer/player.css" />
+<script src="./libs/WSPlayer/PlaySDKInterface.js"></script>
+<script src="./libs/WSPlayer/WSPlayer.js"></script>
+
+<script>
+let player = null;
+
+function log(msg) {
+  const el = document.getElementById("log");
+  const time = new Date().toLocaleTimeString();
+  el.textContent += "[" + time + "] " + msg + "\n";
+}
+
+function testWs() {
+  const wsUrl = document.getElementById("wsUrl").value.trim();
+  log("开始连接 WebSocket: " + wsUrl);
+
+  const ws = new WebSocket(wsUrl);
+
+  ws.onopen = function () {
+    log("✅ WebSocket 连接成功");
+    ws.close();
+  };
+
+  ws.onerror = function (e) {
+    log("❌ WebSocket 连接失败，请看浏览器 Console / Network");
+    console.error(e);
+  };
+
+  ws.onclose = function (e) {
+    log("WebSocket 已关闭 code=" + e.code);
+  };
+
+  ws.onmessage = function (e) {
+    log("收到消息: " + e.data);
+  };
+}
+
+function startPlay() {
+  const wsUrl = document.getElementById("wsUrl").value.trim();
+  const rtspUrl = document.getElementById("rtspUrl").value.trim();
+
+  if (!rtspUrl) {
+    alert("请先填写 RTSP 地址");
+    return;
+  }
+
+  log("准备播放");
+  log("wsUrl=" + wsUrl);
+  log("rtspUrl=" + rtspUrl);
+
+  try {
+    const WSPlayerCtor =
+      window.WSPlayer &&
+      (window.WSPlayer.WSPlayer ||
+       window.WSPlayer.default ||
+       (typeof window.WSPlayer === "function" ? window.WSPlayer : null));
+
+    if (!WSPlayerCtor) {
+      log("❌ 未加载 WSPlayer，请确认 libs/WSPlayer/WSPlayer.js 是否存在");
+      return;
+    }
+
+    if (player && typeof player.destroy === "function") {
+      player.destroy();
+      player = null;
+    }
+
+    player = new WSPlayerCtor({
+      el: "videoPlayer0",
+      type: "real",
+      prefixUrl: "./libs",
+      importLoad: false,
+      config: {
+        num: 1,
+        maxNum: 1,
+        showControl: true,
+        isDynamicLoadLib: true
+      },
+      receiveMessageFromWSPlayer: function (type, data) {
+        if (type === "initializationCompleted") {
+          log("播放器解码库初始化完成");
+        } else if (type === "realSuccess") {
+          log("实时预览播放成功");
+        } else if (type === "realError" || type === "errorInfo") {
+          log("播放器错误: " + JSON.stringify(data || {}));
+          console.error("WSPlayer error", type, data);
+        } else {
+          console.log("WSPlayer message", type, data);
+        }
+      }
+    });
+
+    player.realByUrl({
+      rtspURL: rtspUrl,
+      wsURL: wsUrl,
+      selectIndex: 0,
+      channelId: "demo",
+      streamType: "1",
+      playerAdapter: "selfAdaption"
+    });
+
+    log("已调用 WSPlayer.realByUrl");
+
+  } catch (e) {
+    console.error(e);
+    log("❌ 播放异常: " + e.message);
+  }
+}
+
+function stopPlay() {
+  try {
+    if (player) {
+      if (typeof player.destroy === "function") player.destroy();
+      else if (typeof player.stop === "function") player.stop();
+      else if (typeof player.close === "function") player.close();
+      log("已停止播放器");
+      player = null;
+    } else {
+      log("当前没有 player 实例");
+    }
+  } catch (e) {
+    console.error(e);
+    log("停止异常: " + e.message);
+  }
+}
+</script>
+
+</body>
+</html>
