@@ -4,7 +4,6 @@
 也支持直接测试完整 WSS 取流地址，例如：
 
 ```text
-wss://di.crcxy.com/video/dss/monitor/param/cameraid=1000036%40477%240%26substream=1?token=2253
 ```
 
 ## 目录结构
@@ -27,8 +26,8 @@ wsplayer-demo/
 ## 启动
 
 ```bash
-cd /Users/lvjianwei/Downloads/wsplayer-demo
-python3 -m http.server 8090
+cd /wsplayer-demo
+npx serve .
 ```
 
 访问：
@@ -44,7 +43,7 @@ http://127.0.0.1:8090
 1. 填写 `RTSP 播放使用的 WSS 地址`，例如：
 
 ```text
-wss://di.crcxy.com/video
+wss://xx.xx.com/video
 ```
 
 2. 填写 VLC 可播放的 `RTSP 地址`，通常需要包含 `token=`。
@@ -76,7 +75,6 @@ player.realByUrl({
 如果拿到的是完整 WSS 取流地址，填到 `完整直连 WSS 地址`：
 
 ```text
-wss://di.crcxy.com/video/dss/monitor/param/cameraid=1000036%40477%240%26substream=1?token=2253
 ```
 
 点击：
@@ -111,13 +109,13 @@ wss://di.crcxy.com/video/dss/monitor/param/cameraid=1000036%40477%240%26substrea
 例如会从：
 
 ```text
-wss://di.crcxy.com/video/dss/monitor/param/...
+wss://xxx/video/dss/monitor/param/...
 ```
 
 提取为：
 
 ```text
-wss://di.crcxy.com/video
+wss://xxx/video
 ```
 
 ## 结果判断
